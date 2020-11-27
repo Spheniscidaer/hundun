@@ -1,7 +1,11 @@
 /**
  *
   参考自： https://raw.githubusercontent.com/lxk0301/jd_scripts/master/jd_dreamFactory.js
+  多谢贡献： https://github.com/MoPoQAQ
   * 添加随机助力
+  * 自动开团助力
+  * box设置不自动充能
+  * 可设置每天通知时间
   quanx:
   [task_local]
   10 * * * * https://raw.githubusercontent.com/lxk0301/jd_scripts/master/jd_dreamFactory.js, tag=京喜工厂, enabled=true
@@ -27,6 +31,7 @@ $.cookieArr = [];
 $.currentCookie = "";
 $.allTask = [];
 $.info = {};
+$.userTuanInfo = {};
 
 !(async () => {
   if (!getCookies()) return;
@@ -65,6 +70,9 @@ $.info = {};
         } 还需能量：${endInfo.productionInfo.needElectric - beginInfo.productionInfo.investedElectric}`
       );
       await investElectric();
+      await getTuanInfo();
+      await submitTuanId(userName);
+      await joinTuan();
     }
   }
   await showMsg();
@@ -217,7 +225,7 @@ function getTaskList() {
           data
         );
         $.log(`\n获取任务列表 ${msg}`);
-        $.allTask = userTaskStatusList.filter(x => x.completedTimes < x.configTargetTimes);
+        $.allTask = userTaskStatusList.filter(x => x.awardStatus !== 1);
       } catch (e) {
         $.logErr(e, resp);
       } finally {
@@ -255,13 +263,8 @@ function browserTask() {
   });
 }
 
-function awardTask({ taskId, taskName, completedTimes, configTargetTimes }) {
-  return new Promise(async (resolve) => {
-    if (parseInt(completedTimes) >= parseInt(configTargetTimes)) {
-      resolve(false);
-      $.log(`\n${taskName}[领奖励]： mission success`);
-      return;
-    }
+function awardTask({ taskId, taskName }) {
+  return new Promise((resolve) => {
     $.get(taskListUrl("Award", `taskId=${taskId}`), (err, resp, data) => {
       try {
         const { msg, ret } = JSON.parse(data);
@@ -331,7 +334,7 @@ function investElectric() {
 function hireAward() {
   return new Promise(async (resolve) => {
     $.get(
-      taskUrl("friend/HireAward", `date=${$.time("yyyyMMdd")}`),
+      taskUrl("friend/HireAward", `_time=${new Date().getTime()}`),
       async (err, resp, data) => {
         try {
           const { msg, data: { investElectric } = {} } = JSON.parse(data);
@@ -441,9 +444,111 @@ function createAssistUser() {
   });
 }
 
+function getTuanInfo() {
+  return new Promise(async (resolve) => {
+    $.get(
+      taskUrl("tuan/QueryActiveConfig", `activeId=ilOin38J30PcT9xnWbx9lw%3D%3D&_time=${new Date().getTime()}`),
+      async (err, resp, data) => {
+        try {
+          const { msg, data: { userTuanInfo } = {} } = JSON.parse(data);
+          $.log(`\n${msg}\n开团信息${data}`);
+          if (!userTuanInfo.tuanId) {
+            await createTuan();
+          } else {
+            $.userTuanInfo = userTuanInfo;
+          }
+        } catch (e) {
+          $.logErr(e, resp);
+        } finally {
+          resolve();
+        }
+      }
+    );
+  });
+}
+
+function submitTuanId(userName) {
+  $.log("你的团码: " + $.userTuanInfo.tuanId);
+  return new Promise((resolve) => {
+    $.get(
+      {
+        url: `https://api.ninesix.cc/jx-factory-tuan/${$.userTuanInfo.tuanId}/${userName}`,
+      },
+      (err, resp, _data) => {
+        try {
+          const { data = {} } = JSON.parse(_data);
+          $.log(`\n${data.value}\n${_data}`);
+          if (data.value) {
+            $.result.push("团码提交成功！");
+          }
+        } catch (e) {
+          $.logErr(e, resp);
+        } finally {
+          resolve();
+        }
+      }
+    );
+  });
+}
+
+function createTuan() {
+  return new Promise(async (resolve) => {
+    $.get(
+      taskUrl("tuan/CreateTuan", `activeId=ilOin38J30PcT9xnWbx9lw%3D%3D&isOpenApp=1&_time=${new Date().getTime()}`),
+      async (err, resp, data) => {
+        try {
+          const { msg, data: { userTuanInfo } = {} } = JSON.parse(data);
+          $.log(`\n${msg}\n开团信息${data}`);
+          $.userTuanInfo = userTuanInfo;
+        } catch (e) {
+          $.logErr(e, resp);
+        } finally {
+          resolve();
+        }
+      }
+    );
+  });
+}
+
+function joinTuan() {
+  return new Promise(async (resolve) => {
+    $.get({ url: "https://api.ninesix.cc/jx-factory-tuan" }, (err, resp, _data) => {
+      try {
+        const { data = {} } = JSON.parse(_data);
+        $.log(`\n${data.value}\n${_data}`);
+        $.get(
+          taskUrl("tuan/JoinTuan", `activeId=ilOin38J30PcT9xnWbx9lw%3D%3D&tuanId=4N_bc2tVuNS77jvmoN22jg==&_time=${new Date().getTime()}`),
+          async (err, resp, data) => {
+            try {
+              const { msg } = JSON.parse(data);
+              $.log(`\n参团：${msg}\n${data}`);
+            } catch (e) {
+              $.logErr(e, resp);
+            } finally {
+              resolve();
+            }
+          }
+        );
+      } catch (e) {
+        $.logErr(e, resp);
+      }
+    });
+  });
+}
+
 function showMsg() {
   return new Promise((resolve) => {
-    $.msg($.name, "", `${$.result.join("\n")}`);
+    if ($.notifyTime) {
+      const notifyTimes = $.notifyTime.split(',').map(x => x.split(':'));
+      const now = $.time('HH:mm').split(':');
+      $.log(`\n${JSON.stringify(notifyTimes)}`);
+      $.log(`\n${JSON.stringify(now)}`);
+      if (notifyTimes.some(x => x[0] === now[0] && (!x[1] || x[1] === now[1]))) {
+        $.msg($.name, "", `\n${$.result.join("\n")}`);
+      }
+    } else {
+      $.msg($.name, "", `\n${$.result.join("\n")}`);
+    }
     resolve();
   });
 }
@@ -466,7 +571,7 @@ function taskUrl(function_path, body) {
 
 function taskListUrl(function_path, body) {
   return {
-    url: `${JD_API_HOST}newtasksys/newtasksys_front/${function_path}?source=dreamfactory&bizCode=dream_factory&sceneval=2&g_login_type=1${body}`,
+    url: `${JD_API_HOST}newtasksys/newtasksys_front/${function_path}?${body}&source=dreamfactory&bizCode=dream_factory&sceneval=2&g_login_type=1`,
     headers: {
       Cookie: $.currentCookie,
       Accept: `*/*`,
