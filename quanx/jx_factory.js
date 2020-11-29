@@ -39,6 +39,9 @@ $.userTuanInfo = {};
 !(async () => {
   if (!getCookies()) return;
   for (let i = 0; i < $.cookieArr.length; i++) {
+    if (i > 0 && $.isSurge()) {
+      $.await(10000)
+    }
     $.currentCookie = $.cookieArr[i];
     if ($.currentCookie) {
       const userName = decodeURIComponent(
@@ -568,11 +571,11 @@ function joinTuan() {
         const { data = {} } = JSON.parse(_data);
         $.log(`\n${data.value}\n${$.showLog ? _data : ''}`);
         $.get(
-          taskUrl("tuan/JoinTuan", `activeId=ilOin38J30PcT9xnWbx9lw%3D%3D&tuanId=4N_bc2tVuNS77jvmoN22jg==&_time=${new Date().getTime()}`),
+          taskUrl("tuan/JoinTuan", `activeId=ilOin38J30PcT9xnWbx9lw%3D%3D&tuanId=${escape(data.value)}&_time=${new Date().getTime()}`),
           async (err, resp, data) => {
             try {
               const { msg } = JSON.parse(data);
-              $.log(`\n参团：${msg}\n${$.showLog ? data : ''}`);
+              $.log(`\n参团：${msg.indexOf('成功参团') !== -1 ? '您已参过此团或者参团失败' : msg}\n${$.showLog ? data : ''}`);
             } catch (e) {
               $.logErr(e, resp);
             } finally {
