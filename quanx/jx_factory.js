@@ -3,7 +3,7 @@
  * @Github: https://github.com/whyour
  * @Date: 2020-11-29 13:14:19
  * @LastEditors: whyour
- * @LastEditTime: 2020-12-01 00:46:33
+ * @LastEditTime: 2020-12-01 11:51:04
  * 多谢： https://github.com/MoPoQAQ, https://github.com/lxk0301
  * 添加随机助力
  * 自动开团助力
@@ -23,7 +23,7 @@
 **/
 
 const $ = new Env("京喜工厂");
-const JD_API_HOST = "https://wq.jd.com/";
+const JD_API_HOST = "https://m.jingxi.com/";
 const jdCookieNode = $.isNode() ? require("./jdCookie.js") : "";
 $.autoCharge = $.getdata("jx_autoCharge")
   ? $.getdata("jx_autoCharge") === "true"
@@ -62,6 +62,8 @@ $.userTuanInfo = {};
       await getHireRewardList();
       await $.wait(500);
       await getFriends();
+      await $.wait(500);
+      await pickUserComponents($.info.user.encryptPin, true);
       await $.wait(500);
       await submitInviteId(userName);
       await $.wait(500);
@@ -222,7 +224,7 @@ function collectElectricity(facId, master) {
   });
 }
 
-function pickUserComponents(pin) {
+function pickUserComponents(pin, isMe) {
   return new Promise(async (resolve) => {
     $.get(
       taskUrl(
@@ -232,12 +234,18 @@ function pickUserComponents(pin) {
       async (err, resp, data) => {
         try {
           const { msg, data: { componentList = [] } = {} } = JSON.parse(data);
-          $.log(`\n获取好友零件：${msg}\n${$.showLog ? data : ''}`);
+          $.log(`\n获取${isMe ? '自己' : '好友'}零件：${msg}\n${$.showLog ? data : ''}`);
           if (componentList.length > 0) {
             for (let i = 0; i < componentList.length; i++) {
               await $.wait(1000)
               const {placeId} = componentList[i];
-              await pickUpComponent(placeId, pin);
+              let status = [false];
+              if (!status[0]) {
+                status[0] = await pickUpComponent(placeId, pin, isMe);
+              }
+              if (status[0]) {
+                break;
+              }
             }
           }
         } catch (e) {
@@ -250,7 +258,7 @@ function pickUserComponents(pin) {
   });
 }
 
-function pickUpComponent(placeId, pin) {
+function pickUpComponent(placeId, pin, isMe) {
   return new Promise(async (resolve) => {
     $.get(
       taskUrl(
@@ -260,7 +268,12 @@ function pickUpComponent(placeId, pin) {
       (err, resp, data) => {
         try {
           const { msg, data: { increaseElectric } = {} } = JSON.parse(data);
-          $.log(`\n拾取好友零件：${msg}，获得电力 ${increaseElectric || 0}\n${$.showLog ? data : ''}`);
+          $.log(`\n拾取${isMe ? '自己' : '好友'}零件：${msg}，获得电力 ${increaseElectric || 0}\n${$.showLog ? data : ''}`);
+          if (!increaseElectric) {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
         } catch (e) {
           $.logErr(e, resp);
         } finally {
@@ -677,7 +690,7 @@ function taskUrl(function_path, body) {
       Referer: `https://wqsd.jd.com/pingou/dream_factory/index.html?jxsid=16064615029143314965&exchange=&ptag=139045.1.2&from_source=outer&jump_rd=17088.24.47&deepLink=1`,
       "Accept-Encoding": `gzip, deflate, br`,
       Host: `wq.jd.com`,
-      "User-Agent": `jdpingou;iPhone;3.15.2;14.2.1;ea00763447803eb0f32045dcba629c248ea53bb3;network/3g;model/iPhone13,2;appBuild/100365;ADID/00000000-0000-0000-0000-000000000000;supportApplePay/1;hasUPPay/0;pushNoticeIsOpen/0;hasOCPay/0;supportBestPay/0;session/4;pap/JA2015_311210;brand/apple;supportJDSHWK/1;Mozilla/5.0 (iPhone; CPU iPhone OS 14_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148`,
+      "User-Agent": `jdpingou;iPhone;3.15.2;14.2.1;ea00763447803eb0f32045dcba629c248ea53bb3;network/wifi;model/iPhone13,2;appBuild/100365;ADID/00000000-0000-0000-0000-000000000000;supportApplePay/1;hasUPPay/0;pushNoticeIsOpen/0;hasOCPay/0;supportBestPay/0;session/${Math.random*98 + 1};pap/JA2015_311210;brand/apple;supportJDSHWK/1;Mozilla/5.0 (iPhone; CPU iPhone OS 14_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148`,
       "Accept-Language": `zh-cn`,
     },
   };
@@ -693,7 +706,7 @@ function taskListUrl(function_path, body) {
       Referer: `https://wqsd.jd.com/pingou/dream_factory/index.html?jxsid=16064615029143314965&exchange=&ptag=139045.1.2&from_source=outer&jump_rd=17088.24.47&deepLink=1`,
       "Accept-Encoding": `gzip, deflate, br`,
       Host: `wq.jd.com`,
-      "User-Agent": `jdpingou;iPhone;3.15.2;14.2.1;ea00763447803eb0f32045dcba629c248ea53bb3;network/3g;model/iPhone13,2;appBuild/100365;ADID/00000000-0000-0000-0000-000000000000;supportApplePay/1;hasUPPay/0;pushNoticeIsOpen/0;hasOCPay/0;supportBestPay/0;session/4;pap/JA2015_311210;brand/apple;supportJDSHWK/1;Mozilla/5.0 (iPhone; CPU iPhone OS 14_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148`,
+      "User-Agent": `jdpingou;iPhone;3.15.2;14.2.1;ea00763447803eb0f32045dcba629c248ea53bb3;network/wifi;model/iPhone13,2;appBuild/100365;ADID/00000000-0000-0000-0000-000000000000;supportApplePay/1;hasUPPay/0;pushNoticeIsOpen/0;hasOCPay/0;supportBestPay/0;session/${Math.random*98 + 1};pap/JA2015_311210;brand/apple;supportJDSHWK/1;Mozilla/5.0 (iPhone; CPU iPhone OS 14_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148`,
       "Accept-Language": `zh-cn`,
     },
   };
