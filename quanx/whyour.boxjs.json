@@ -168,7 +168,7 @@
     {
       "id": "jd_ddxw",
       "name": "东东小窝",
-      "keys": ["jd_ddxw_name1", "jd_ddxw_name2", "jd_ddxw_token1", "jd_ddxw_token2"],
+      "keys": ["jd_ddxw_name1", "jd_ddxw_name2"],
       "settings": [
         {
           "id": "xw_showLog",
@@ -378,7 +378,7 @@
           "val": false,
           "type": "boolean",
           "desc": "打开时，会一直升级到钞票不够20000，默认关闭"
-        },
+        }
       ],
       "author": "@whyour",
       "repo": "https://github.com/whyour/hundun/blob/master/quanx/jx_factory_component.js",
