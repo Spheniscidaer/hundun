@@ -3,7 +3,7 @@
  * @Github: https://github.com/whyour
  * @Date: 2020-11-29 13:14:19
  * @LastEditors: whyour
- * @LastEditTime: 2020-12-02 00:30:57
+ * @LastEditTime: 2020-12-02 11:03:46
   quanx:
   [task_local]
   10 * * * * https://raw.githubusercontent.com/whyour/hundun/master/quanx/jx_story.js, tag=京喜金牌厂长, img-url=https://raw.githubusercontent.com/58xinian/icon/master/jdgc.png, enabled=true
@@ -47,9 +47,11 @@ $.info = {};
       await getTaskList();
       await $.wait(500);
       await browserTask();
-      await getReadyCard();
+      await $.wait(500);
       await getFriends();
-      await clickManage();
+      // await getReadyCard();
+      // await clickManage();
+      await $.wait(500);
       const endInfo = await getUserInfo();
       $.result.push(
         `任务前钞票：${beginInfo.currentMoneyNum} 任务后钞票：${endInfo.currentMoneyNum}`,
@@ -191,13 +193,13 @@ function getFriends() {
     $.get(taskUrl('userinfo/GetFriendList'), async (err, resp, data) => {
       try {
         const { msg, data: { hireListToday = [] } = {} } = JSON.parse(data);
-        $.log(`\n获取助力好友：${msg}\n${$.showLog ? data : ''}`);
+        $.log(`\n获取助力好友：${msg}\n${!$.showLog ? data : ''}`);
         for (let i = 0; i < hireListToday.length; i++) {
-          const { awardMoneyStatus, awardHongbaoStatus, bingoActive } = hireListToday[i];
+          const { awardMoneyStatus, awardHongbaoStatus, rewardHongbaoMax } = hireListToday[i];
           if (!awardMoneyStatus) {
             await awardMoney(i + 1);
           }
-          if (!awardHongbaoStatus && bingoActive) {
+          if (!awardHongbaoStatus && rewardHongbaoMax > 0) {
             await awardHongbao(i + 1);
           }
         }
@@ -227,7 +229,7 @@ function awardMoney(id) {
 
 function awardHongbao(id) {
   return new Promise(resolve => {
-    $.get(taskUrl('userinfo/HireAward', `type=1&position=${id}`), async (err, resp, data) => {
+    $.get(taskUrl('userinfo/HireAward', `type=2&position=${id}`), async (err, resp, data) => {
       try {
         const { msg, data: { rewardHongbao = 0 } = {} } = JSON.parse(data);
         $.log(`\n获取助力红包：${msg}，获得红包 ${rewardHongbao}\n${$.showLog ? data : ''}`);
