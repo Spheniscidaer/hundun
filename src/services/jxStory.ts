@@ -9,14 +9,14 @@ export default class JxStoryService {
   public async getCode(): Promise<{ code: ICommon }> {
     const [record] = await this.jxStory.aggregate([{ $sample: { size: 1 } }]);
     if (!record) {
-      throw new Error('get shiCi error');
+      throw new Error('get jpcz code error');
     }
     return { code: record };
   }
 
   public async createCode({ name, code }: { name: string; code: string }): Promise<{ code: ICommon & Document }> {
     const record = await this.jxStory.findOneAndUpdate(
-      { $or: [{ name, value: code }] },
+      { $or: [{ name }, { value: code }] },
       {
         value: code,
         name: name,
@@ -25,7 +25,7 @@ export default class JxStoryService {
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
     if (!record) {
-      throw new Error('get shiCi error');
+      throw new Error('create jpcz code error');
     }
     return { code: record };
   }

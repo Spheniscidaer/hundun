@@ -9,14 +9,14 @@ export default class DdFactoryService {
   public async getCode(): Promise<{ code: ICommon }> {
     const [record] = await this.ddFactory.aggregate([{ $sample: { size: 1 } }]);
     if (!record) {
-      throw new Error('get shiCi error');
+      throw new Error('get ddgc code error');
     }
     return { code: record };
   }
 
   public async createCode({ name, code }: { name: string; code: string }): Promise<{ code: ICommon & Document }> {
     const record = await this.ddFactory.findOneAndUpdate(
-      { $or: [{ name, value: code }] },
+      { $or: [{ name }, { value: code }] },
       {
         value: code,
         name: name,
@@ -25,7 +25,7 @@ export default class DdFactoryService {
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
     if (!record) {
-      throw new Error('get shiCi error');
+      throw new Error('create ddgc code error');
     }
     return { code: record };
   }

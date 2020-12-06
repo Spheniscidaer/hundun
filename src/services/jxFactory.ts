@@ -9,14 +9,14 @@ export default class JxFactoryService {
   public async getCode(): Promise<{ code: ICommon }> {
     const [record] = await this.jxFactory.aggregate([{ $sample: { size: 1 } }]);
     if (!record) {
-      throw new Error('get shiCi error');
+      throw new Error('get jxgc code error');
     }
     return { code: record };
   }
 
   public async createCode({ name, code }: { name: string; code: string }): Promise<{ code: ICommon & Document }> {
     const record = await this.jxFactory.findOneAndUpdate(
-      { $or: [{ name, value: code }] },
+      { $or: [{ name }, { value: code }] },
       {
         value: code,
         name: name,
@@ -25,7 +25,7 @@ export default class JxFactoryService {
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
     if (!record) {
-      throw new Error('get shiCi error');
+      throw new Error('create jxgc code error');
     }
     return { code: record };
   }
